@@ -2,6 +2,9 @@ import socket
 import time
 import json
 import random
+import os.path
+
+path = "/tmp/client.txt"
 
 # import subprocess
 
@@ -14,9 +17,10 @@ rx_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 tx_socket.bind(("", 8008))  # only to prevent icmp "not reachable"
 
+
+
 rx_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-rx_socket.connect(("10.255.255.255", 8016))
-# rx_socket.connect(("127.0.0.1", 8004))
+#rx_socket.connect(("10.255.255.255", 8016))
 
 cnt: int = 0
 loop: int = 0
@@ -26,57 +30,32 @@ for i in range(0, 20):
 _: str = ""
 file = None
 
-# try:
-#     file = open("/tmp/log/client.LOG", "w")
-#     file.write(f"Client started at {time.time()}")
-#     _ = "logfile found"
-# except Exception:
-#     _ = "no logfile"
-#     pass
-
+srv_map = {"1": "10.0.0.21", "2": "10.0.0.22", "3": "10.0.0.23", "4": "10.0.0.24"}
+mig = False
 print(f"starting client, {_}")
+mig_index = 0
+mig = False
 while True:
     try:
-        msg = json.dumps(
-            [
-                {
-                    "message": f"packet{loop}",
-                    "type": "DATA",
-                    "time": f"{time.time()}",
-                    "data": data,
-                }
-            ],
-            sort_keys=True,
-            # indent=4,
-            separators=(",", ": "),
-        )
-        rx_socket.sendall(msg.encode())
-
-        # try:
-        #     file = open("/tmp/log/client.txt", "w")
-        #     file.write(f"sent msg, time : {time.time()}")
-        #     file.close()
-        # except Exception:
-        #     pass
-
-        if loop < 5:
-            loop += 1
+        data, addr = tx_socket.recvfrom(4096)   # will stuck here until receive some data
+        data = data.decode()
+        if data == "ready":
+            if not mig_index:
+              print("Start...")
+            else:
+                 if not mig:
+                    mig = True 
+                    print("Migrating...")
+            rx_socket.connect((addr[0], 8016))
+            mig_index = mig_index + 1
         else:
-            loop = 0
-        # data, addr = tx_socket.recvfrom(4096)  # use select.select() or sock.timeout() to only wait for recv time X
-        # print(data)
-
-        # try:
-        #     file = open("/tmp/log/client.txt", "w")
-        #     file.write(f"received msg : {data} from {addr}, time : {time.time()}")
-        #     file.close()
-        # except Exception:
-        #     pass
-
-        time.sleep(5)
+            mig = False
+            print(data)
+        msg = "request"
+        rx_socket.sendall(msg.encode())
+        #time.sleep(5)
     except Exception:
-        # file.close()
-        cnt += 1
-        if cnt > 5:
-            print("abort client")
-            break
+        if not mig:
+           print("Migrating...")
+
+

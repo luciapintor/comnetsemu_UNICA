@@ -32,5 +32,6 @@ CMD ["bash"]
 # Add Directories
 ADD client.py /tmp/
 ADD probe_agent.py /tmp/
-ADD server.py /tmp/
+ADD stateful_server.py /tmp/
+ADD stateless_server.py /tmp/
 ADD probe_server.py /tmp/
