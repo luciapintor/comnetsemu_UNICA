@@ -9,6 +9,7 @@ see: https://github.com/mininet/mininet/issues/454
 
 import time
 import socket
+import os
 
 from comnetsemu.net import Containernet, VNFManager
 from comnetsemu.cli import CLI
@@ -55,28 +56,28 @@ def start() -> None:
         dimage="mec_test",
         ip="10.0.0.21",
         mac="00:00:00:00:01:01",
-        docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+        docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
     )
     server2: DockerHost = net.addDockerHost(
         "server2",
         dimage="mec_test",
         ip="10.0.0.22",
         mac="00:00:00:00:01:02",
-        docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+        docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
     )
     server3: DockerHost = net.addDockerHost(
         "server3",
         dimage="mec_test",
         ip="10.0.0.23",
         mac="00:00:00:00:01:03",
-        docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+        docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
     )
     server4: DockerHost = net.addDockerHost(
         "server4",
         dimage="mec_test",
         ip="10.0.0.24",
         mac="00:00:00:00:01:04",
-        docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+        docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
     )
     if full_tree:
         server5: DockerHost = net.addDockerHost(
@@ -84,28 +85,28 @@ def start() -> None:
             dimage="mec_test",
             ip="10.0.0.25",
             mac="00:00:00:00:01:05",
-            docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+            docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
         )
         server6: DockerHost = net.addDockerHost(
             "server6",
             dimage="mec_test",
             ip="10.0.0.26",
             mac="00:00:00:00:01:06",
-            docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+            docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
         )
         server7: DockerHost = net.addDockerHost(
             "server7",
             dimage="mec_test",
             ip="10.0.0.27",
             mac="00:00:00:00:01:07",
-            docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+            docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
         )
         server8: DockerHost = net.addDockerHost(
             "server8",
             dimage="mec_test",
             ip="10.0.0.28",
             mac="00:00:00:00:01:08",
-            docker_args={"cpuset_cpus": "0", "cpu_quota": 25000},
+            docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}, "cpuset_cpus": "0", "cpu_quota": 25000},
         )
 
     info("\n*** Adding Switches\n")
@@ -166,13 +167,13 @@ def start() -> None:
     net.pingAll()  # optional
 
     info("\n*** Adding Docker Containers\n")
-    client1_container: APPContainer = mgr.addContainer(
-        name="client1_container",
-        dhost="client1",
-        dimage="mec_test",
-        docker_args={},
-        dcmd="python3.6 /tmp/client.py",
-    )
+    #client1_container: APPContainer = mgr.addContainer(
+    #    name="client1_container",
+    #    dhost="client1",
+    #    dimage="mec_test",
+    #    docker_args={},
+    #    dcmd="python3.6 /tmp/client.py",
+    #)
     probe1_container: APPContainer = mgr.addContainer(
         name="probe1_container",
         dhost="probe1",
@@ -242,7 +243,7 @@ def start() -> None:
     time.sleep(5)
 
     print(
-        f"client 1 : \n{client1_container.dins.logs().decode('utf-8')}\n"
+        #f"client 1 : \n{client1_container.dins.logs().decode('utf-8')}\n"
         f"probe 1 : \n{probe1_container.dins.logs().decode('utf-8')}\n"
         f"probing server 1 : \n{probing_server1_container.dins.logs().decode('utf-8')}\n"
         f"probing server 2 : \n{probing_server2_container.dins.logs().decode('utf-8')}\n"
@@ -257,9 +258,15 @@ def start() -> None:
             f"probing server 8 : \n{probing_server8_container.dins.logs().decode('utf-8')}\n"
         )
 
+    state_path = "/tmp/server.txt"
+    if os.path.isfile(state_path):
+       os.remove(state_path)
+       print("Reset state file")
+    
+    
     # time.sleep(2)
     # CLI(net)
-    time.sleep(30)
+    time.sleep(60)
 
     server_container: APPContainer = None
 
@@ -268,25 +275,32 @@ def start() -> None:
     )  # REST -> REpresentational State Transfer
     while True:
         data, addr = rx_socket.recvfrom(1024)
-        _: str = data.decode()
+        _: str = data.decode()     # maybe controller send the chosen server
         print(f"{_} {_[_.__len__()-1]}")
+        #print(f"Nothing!!!")
         if active_container:  # if container set, remove it
             mgr.removeContainer(server_container.name)
-            time.sleep(2)  # prevent hang on waitContainerStart()
+            time.sleep(2)  # sign to indicate migration
             print("removing container")
         server_container: APPContainer = mgr.addContainer(
             name="server_container",
             # update dhost appropriate to target host
             dhost=f"server{_[_.__len__()-1]}",
             dimage="mec_test",
-            docker_args={},
-            dcmd="python3.6 /tmp/server.py",
+            docker_args={"volumes": {"/tmp": {"bind": "/tmp", "mode": "rw"}}},
+            #dcmd="python3.6 /tmp/stateless_server.py",
+            dcmd="python3.6 /tmp/stateful_server.py",
         )
         print(
             f"New container : \n{server_container.dins.logs().decode('utf-8')} on server{_[_.__len__()-1]}"
         )
         cnt += 1
         active_container = True
+        
+        switch1.cmdPrint("ovs-ofctl dump-flows switch1")
+        switch11.cmdPrint("ovs-ofctl dump-flows switch11")
+        switch111.cmdPrint("ovs-ofctl dump-flows switch111")
+        switch112.cmdPrint("ovs-ofctl dump-flows switch112")
         time.sleep(10)  # dont allow container change too frequent
         if cnt > 10:
             break
