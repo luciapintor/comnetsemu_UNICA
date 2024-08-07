@@ -288,11 +288,11 @@ For all public users, please create issues or send pull requests on
 ## Contact
 
 Project main maintainers:
-
+- Tung Van Doan: tung.doan_van@tu-dresden.de
+- Mahdi Attawna: mahdi.attawna@tu-dresden.de
 - Zuo Xiang: zuo.xiang@tu-dresden.de (office), xianglinks@gmail.com (personal)
 
 
-### Acknowledgment
-This work was supported by the German Research Foundation (DFG, Deutsche Forschungsgemeinschaft) as part of Germany's Excellence Strategy—EXC 2050/1—Cluster of Excellence "Centre for Tactile Internet with Human-in-the-Loop" (CeTI) of Technische Universität Dresden under Project ID 390696704 and the Federal Ministry of Education and Research of Germany in the programme of "Souverän. Digital. Vernetzt." Joint project 6G-life, project identification number: 16KISK001K.
+## Acknowledgment
 
-[![CeTI Logo](images/ceti_logo.jpg )](https://ceti.one/)   [![6G-life](images/6g_life_logo.png)](https://6g-life.de/)
+This work was supported by the German Research Foundation (DFG, Deutsche Forschungsgemeinschaft) as part of Germany's Excellence Strategy—EXC 2050/1—Cluster of Excellence "Centre for Tactile Internet with Human-in-the-Loop" (CeTI) of Technische Universität Dresden under Project ID 390696704 and the Federal Ministry of Education and Research of Germany in the programme of "Souverän. Digital. Vernetzt." Joint project 6G-life, project identification number: 16KISK001K.
