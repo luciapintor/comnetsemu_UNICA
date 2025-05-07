@@ -1,0 +1,18 @@
+#
+# About: Test image for development
+#
+
+FROM ubuntu:latest
+
+RUN \
+        apt-get update && \
+        apt-get -y upgrade && \
+        apt-get install -y build-essential && \
+        apt-get install -y net-tools iproute2 iputils-ping \
+        apt-transport-https ca-certificates iperf iperf3
+
+ENV HOME /root
+WORKDIR /root
+
+# Define default command.
+CMD ["bash"]
