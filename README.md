@@ -1,3 +1,7 @@
+Disclaimer 
+=======
+
+*This is a copy that has been modified for educational purposes. If you want a working code and you are not willing to fix the errors I put on purpose, please refer to the original repository available at* https://git.comnets.net/public-repo/comnetsemu.git 
 
 [![MIT Licensed](https://img.shields.io/github/license/stevelorenz/comnetsemu)](https://github.com/stevelorenz/comnetsemu/blob/master/LICENSE)
 [![ComNetsEmu CI](https://github.com/stevelorenz/comnetsemu/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/stevelorenz/comnetsemu/actions/workflows/ci.yml)
