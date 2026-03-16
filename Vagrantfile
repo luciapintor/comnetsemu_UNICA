@@ -3,6 +3,29 @@
 # About: Vagrant file for the development environment
 
 ###############
+#   Modules   #
+###############
+
+module OS
+  def OS.windows?
+      (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def OS.mac?
+      (/darwin/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def OS.unix?
+      !OS.windows?
+  end
+
+  def OS.linux?
+      OS.unix? and not OS.mac?
+  end
+end
+
+
+###############
 #  Variables  #
 ###############
 
@@ -18,14 +41,25 @@ BOX = "bento/ubuntu-20.04"
 VM_NAME = "ubuntu-20.04-comnetsemu"
 
 # When using libvirt as the provider, use this box, bento boxes do not support libvirt.
-BOX_LIBVIRT = "generic/ubuntu2004"
+BOX_LIBVIRT = "generic/ubuntu2204"
 
 ######################
 #  Provision Script  #
 ######################
 
+# OS identification
+if OS.windows?
+  puts "Vagrant launched from windows."
+elsif OS.unix?
+  puts "Vagrant launched from unix."
+else
+  puts "Vagrant launched from unknown platform."
+end
+
 # Common bootstrap
 $bootstrap= <<-SCRIPT
+DEBIAN_FRONTEND=noninteractive echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+DEBIAN_FRONTEND=noninteractive systemctl restart systemd-resolved
 DEBIAN_FRONTEND=noninteractive apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
@@ -48,6 +82,14 @@ APT_PKGS=(
 )
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${APT_PKGS[@]}"
 SCRIPT
+
+if OS.windows?
+puts "Changing EOL of bash scripts"
+$setup_for_windows= <<-SCRIPT
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends dos2unix
+DEBIAN_FRONTEND=noninteractive find /home/vagrant/comnetsemu -name "*.sh" -exec dos2unix '{}' '\;'
+SCRIPT
+end
 
 $setup_x11_server= <<-SCRIPT
 APT_PKGS=(
@@ -143,6 +185,9 @@ it will not take much time.
 
     comnetsemu.vm.provision :shell, inline: $bootstrap, privileged: true
     comnetsemu.vm.provision :shell, inline: $setup_x11_server, privileged: true
+    if OS.windows?
+      comnetsemu.vm.provision :shell, inline: $setup_for_windows, privileged: true
+    end 
     comnetsemu.vm.provision :shell, inline: $setup_comnetsemu, privileged: false
     comnetsemu.vm.provision :shell, inline: $post_installation, privileged: true
 

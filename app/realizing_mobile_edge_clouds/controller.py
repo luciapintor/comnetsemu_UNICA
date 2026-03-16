@@ -37,6 +37,11 @@ class Controller(app_manager.RyuApp):
         )  # socket for REST
         self.tx_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.tx_socket.connect(("127.0.0.1", 8016))
+        
+        self.client_socket = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM
+        )
+        self.client_socket.connect(("172.17.0.2", 9000)) 
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -159,6 +164,7 @@ class Controller(app_manager.RyuApp):
 
             # probing packet from probing agent
             if ip_src == "10.0.0.40":
+                self.logger.info(f"Receive pkt with ip_src 10.0.0.40 from {dpid}")
                 for key, value in self.mac_to_port[
                     dpid
                 ].items():  # send arp probe to all servers
@@ -223,8 +229,9 @@ class Controller(app_manager.RyuApp):
                             data=data,
                         )
                         datapath.send_msg(out)
+                        self.logger.info(f"Send UDP pkt from 10.0.0.40 to port {value} in switch {dpid}")
                         del out
-                        self.time = (self.time[0], time.time())
+                        self.time = (self.time[0], time.time())  # capture the time the controller fwd message to server
                 return
 
             # data packet from client (drop due to no flow yet ?)
@@ -247,6 +254,7 @@ class Controller(app_manager.RyuApp):
             elif ip_dst == "10.0.0.40":
                 latency: float = (time.time() - self.time[1]) * 1e3
                 self.latency[1].update({eth_src: latency})
+                self.logger.info(f"Datapath,{dpid} {eth_src} {latency}")
                 # no optimal host evaluation during startup period, msg_cnt of 80 assumed sufficient by experience
                 if self.msg_cnt > 80:
                     mac_list = []
@@ -264,19 +272,31 @@ class Controller(app_manager.RyuApp):
                     # update optimal host on change with REST approach
                     if self.optimal_host != mac_list[min_]:
                         self.optimal_host = mac_list[min_]
-                        self.tx_socket.sendall(f"NEW SERVER {mac_list[min_]}".encode())
+                        self.tx_socket.sendall(f"NEW SERVER {latency_list[min_]} {mac_list[min_]}".encode())
+                        self.client_socket.sendall(f"NEW SERVER {latency_list[min_]} {mac_list[min_]}".encode())
+                    self.logger.info(f"Flow-Datapath,{dpid}---------------------------------------")
                     actions = [parser.OFPActionOutput(self.mac_to_port[dpid][_])]
                     match = parser.OFPMatch(
                         in_port=self.mac_to_port[dpid]["00:00:00:00:00:01"],
                         eth_dst=_,
                         eth_src="00:00:00:00:00:01",
                     )
+                    # add-flows for path from server to client
+                    data_actions = [parser.OFPActionOutput(self.mac_to_port[dpid]["00:00:00:00:00:01"])]
+                    data_match = parser.OFPMatch(
+                        in_port=self.mac_to_port[dpid][_],
+                        eth_dst="00:00:00:00:00:01",
+                    )
                     # add new optimal flow (@TODO check this)
                     if msg.buffer_id != ofproto.OFP_NO_BUFFER:
                         self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                        self.add_flow(datapath, 1, data_match, data_actions, msg.buffer_id)
                         return
                     else:
                         self.add_flow(datapath, 1, match, actions)
+                        self.add_flow(datapath, 1, data_match, data_actions)
+                        
+                    
             else:  # other data source
                 pass
         else:  # -> default msg out
